@@ -36,7 +36,7 @@ def store_category(link):
     for div in soup.find_all("div", {"class": "search_results"}):
         for link in div.select("a"):
             new_category.append(link['href'])
-            i = i+1
+            i = i + 1
             if i == 500:
                 break
 
@@ -47,27 +47,29 @@ def get_store_data(store):
     response = requests.get(store)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # Gets the name of the game. If we get to a page that doesn't have a name ready. Skip.
+    # If a game page has all of the attribtues then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
-        game_name = soup.find('span', attrs={'itemprop': 'name'}).next
-        print(game_name)
+        if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
+            if soup.find('span', attrs={'itemprop': 'description'}):
+                # Gets the name of the game
+                game_name = soup.find('span', attrs={'itemprop': 'name'}).next
+                print(game_name)
+                # Gets the score of the game
+                game_score = soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}).next
+                game_score2 = game_score[16] + game_score[17]
+                print(game_score2)
+                # Gets the review category of the game
+                game_review = soup.find('span', attrs={'itemprop': 'description'}).next
+                print(game_review, end='\n\n')
 
-
-    #Gets the score of the game
-    if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
-        game_score = soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}).next
-        game_score2 = game_score[16] + game_score[17]
-        print(game_score2)
-
-    #Gets the review category of the game
-    if soup.find('span', attrs={'itemprop': 'description'}):
-        game_review = soup.find('span', attrs={'itemprop': 'description'}).next
-        print(game_review, end='\n\n')
-
-
-
-
-    #Lets get the Review Percentage
+    # Things to collect information one.
+    # Decide if we want to include DLC or Not
+    # Achievement amounts (?)
+    # Price Amounts, Discount or otherwise !!!
+    # content Rating (?)
+    # Review Amount
+    # Curator Review Amount
+    # Game Feature Tags Ex, Controller Support
 
     # To find the price Work on Later
     # all = soup.find('meta', attrs={'itemprop':'price'})
@@ -77,16 +79,11 @@ def get_store_data(store):
     # https://store.steampowered.com/app/601840/Griftlands/
 
 
-# Sorts by New and Trending
+# Sorts by Top Selling Action
 New_List = store_category("https://store.steampowered.com/search/?tags=19&filter=topsellers")
 
 for i in New_List[:-4]:
     get_store_data(i)
-
-#get_store_data("https://store.steampowered.com/app/1264280/Slipways/")
-
-
-
 
 # Sorts by Top Sellers
 # Top_List = store_category("https://store.steampowered.com/search/?filter=topsellers&os=win")
