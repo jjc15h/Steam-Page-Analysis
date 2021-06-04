@@ -1,3 +1,4 @@
+# Lets do this by tags and categories like action, strategy, etc... instead
 import requests
 import time
 from bs4 import BeautifulSoup
@@ -46,9 +47,27 @@ def get_store_data(store):
     response = requests.get(store)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # Gets the name of the game.
-    game_name = soup.find('span', attrs={'itemprop': 'name'}).next
-    print(game_name)
+    # Gets the name of the game. If we get to a page that doesn't have a name ready. Skip.
+    if soup.find('span', attrs={'itemprop': 'name'}):
+        game_name = soup.find('span', attrs={'itemprop': 'name'}).next
+        print(game_name)
+
+
+    #Gets the score of the game
+    if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
+        game_score = soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}).next
+        game_score2 = game_score[16] + game_score[17]
+        print(game_score2)
+
+    #Gets the review category of the game
+    if soup.find('span', attrs={'itemprop': 'description'}):
+        game_review = soup.find('span', attrs={'itemprop': 'description'}).next
+        print(game_review, end='\n\n')
+
+
+
+
+    #Lets get the Review Percentage
 
     # To find the price Work on Later
     # all = soup.find('meta', attrs={'itemprop':'price'})
@@ -59,10 +78,14 @@ def get_store_data(store):
 
 
 # Sorts by New and Trending
-New_List = store_category("https://store.steampowered.com/search/?sort_by=Released_DESC&os=win")
+New_List = store_category("https://store.steampowered.com/search/?tags=19&filter=topsellers")
 
-for i in New_List:
+for i in New_List[:-4]:
     get_store_data(i)
+
+#get_store_data("https://store.steampowered.com/app/1264280/Slipways/")
+
+
 
 
 # Sorts by Top Sellers
