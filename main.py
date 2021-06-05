@@ -49,23 +49,49 @@ def get_store_data(store):
 
     # If a game page has all of the attribtues then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
-        if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
-            if soup.find('span', attrs={'itemprop': 'description'}):
-                # Gets the name of the game
-                game_name = soup.find('span', attrs={'itemprop': 'name'}).next
-                print(game_name)
-                # Gets the score of the game
-                game_score = soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}).next
-                game_score2 = game_score[16] + game_score[17]
-                print(game_score2)
-                # Gets the review category of the game
-                game_review = soup.find('span', attrs={'itemprop': 'description'}).next
-                print(game_review, end='\n\n')
+        if soup.find('span', attrs={'itemprop': 'description'}):
+            # Gets the name of the game
+            game_name = soup.find('span', attrs={'itemprop': 'name'}).next
+            print(game_name)
+            # Gets the score of the game
+
+            # Gets the review category of the game
+            game_review = soup.find('span', attrs={'itemprop': 'description'}).next
+            print(game_review, end='\n')
+
+            # Grabs the game review score
+            if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
+                div = soup.find_all("span", {'class': 'nonresponsive_hidden responsive_reviewdesc'})
+                if len(div) == 2:
+                    str1 = ""
+                    for i in div[1]:
+                        str1 += str(i)
+                    str1 = str1.strip()
+                    game_score2 = str1[2] + str1[3]
+                    print(game_score2)
+                else:
+                    str1 = ""
+                    for i in div[0]:
+                        str1 += str(i)
+                    str1 = str1.strip()
+                    game_score2 = str1[2] + str1[3]
+                    print(game_score2)
+
+            #Grabs the price of the game including sales if applicable
+            if(soup.find('div', attrs={'class':'discount_original_price'})):
+                #Get the price
+                all = soup.find('div', attrs={'class':'discount_original_price'}).next
+                print("Original: " + all, end=" ")
+                all = soup.find('div', attrs={'class': 'discount_final_price'}).next
+                print("Discounted: " + all, end='\n\n')
+            else:
+                all = soup.find('meta', attrs={'itemprop':'price'})
+                print("Original No sale: " + all["content"], end='\n\n')
+            # Note Free games show up as 0.00
 
     # Things to collect information one.
     # Decide if we want to include DLC or Not
     # Achievement amounts (?)
-    # Price Amounts, Discount or otherwise !!!
     # content Rating (?)
     # Review Amount
     # Curator Review Amount
@@ -77,6 +103,8 @@ def get_store_data(store):
     # print(all2)
     # https://store.steampowered.com/app/1264280/Slipways/
     # https://store.steampowered.com/app/601840/Griftlands/
+    # https://store.steampowered.com/app/1328670/Mass_Effect_Legendary_Edition/
+    # "https://store.steampowered.com/app/211820/Starbound/"
 
 
 # Sorts by Top Selling Action
