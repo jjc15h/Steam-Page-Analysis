@@ -1,6 +1,7 @@
 # Lets do this by tags and categories like action, strategy, etc... instead
 import requests
 import time
+import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -10,7 +11,6 @@ def store_category(link):
     browser.get(link)
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-    # ---
     SCROLL_PAUSE_TIME = 0.5
 
     # Get scroll height
@@ -77,30 +77,45 @@ def get_store_data(store):
                     game_score2 = str1[2] + str1[3]
                     print(game_score2)
 
-            #Grabs the price of the game including sales if applicable
-            if(soup.find('div', attrs={'class':'discount_original_price'})):
-                #Get the price
-                all = soup.find('div', attrs={'class':'discount_original_price'}).next
+            lol = soup.find('meta', attrs={'itemprop': 'reviewCount'})
+            print("Review Amt: " + lol['content'])
+
+            # Grabs the price of the game including sales if applicable
+            if soup.find('div', attrs={'class': 'discount_original_price'}):
+                # Get the price
+                all = soup.find('div', attrs={'class': 'discount_original_price'}).next
                 print("Original: " + all, end=" ")
                 all = soup.find('div', attrs={'class': 'discount_final_price'}).next
-                print("Discounted: " + all, end='\n\n')
+                print("Discounted: " + all)
             else:
-                all = soup.find('meta', attrs={'itemprop':'price'})
-                print("Original No sale: " + all["content"], end='\n\n')
+                all = soup.find('meta', attrs={'itemprop': 'price'})
+                print("Original No sale: " + all["content"])
             # Note Free games show up as 0.00
+
+            # Gets Achievements
+            if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
+                GELLO = soup.find('div', attrs={'id': 'achievement_block'}).find('div', attrs={'class': 'block_title'}).next
+                GELLO = GELLO.strip()
+                GELLO = re.findall('\d+', GELLO)
+                GELLO = list(map(int,GELLO))
+                print(GELLO[0], end="")
+                print(" Achievements", end='\n\n')
+            else:
+                print("0 Achievements", end='\n\n')
+
+        # Work on Rating System ( Figure out how to get the ratings from a link
+
+            for a in soup.find_all('div', attrs={'class': 'game_rating_icon'}):
+                if a.img:
+                    print(a.img['src'])
+            # print(rating)
 
     # Things to collect information one.
     # Decide if we want to include DLC or Not
-    # Achievement amounts (?)
     # content Rating (?)
-    # Review Amount
-    # Curator Review Amount
     # Game Feature Tags Ex, Controller Support
+    # Language Supports
 
-    # To find the price Work on Later
-    # all = soup.find('meta', attrs={'itemprop':'price'})
-    # all2 = all.get('content', '')
-    # print(all2)
     # https://store.steampowered.com/app/1264280/Slipways/
     # https://store.steampowered.com/app/601840/Griftlands/
     # https://store.steampowered.com/app/1328670/Mass_Effect_Legendary_Edition/
@@ -108,10 +123,10 @@ def get_store_data(store):
 
 
 # Sorts by Top Selling Action
-New_List = store_category("https://store.steampowered.com/search/?tags=19&filter=topsellers")
+# New_List = store_category("https://store.steampowered.com/search/?tags=19&filter=topsellers")
 
-for i in New_List[:-4]:
-    get_store_data(i)
+# for i in New_List[:-4]:
+get_store_data("https://store.steampowered.com/app/1328670/Mass_Effect_Legendary_Edition/")
 
 # Sorts by Top Sellers
 # Top_List = store_category("https://store.steampowered.com/search/?filter=topsellers&os=win")
