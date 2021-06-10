@@ -1,5 +1,4 @@
 # Lets do this by tags and categories like action, strategy, etc... instead
-#TODO: Figure out how to include price in workbook
 #TODO: Clean up the code to make it look semi-decent
 #TODO: Create an extra function for the workbook part.
 #TODO: Work on combining multiple workbooks into one at the end
@@ -17,7 +16,8 @@ date_list = []
 review_list=[]
 score_list =[]
 review_amt_list = []
-#Price
+original_price_list = []
+discount_price_list = []
 achievement_list = []
 rating_category = []
 DLC = []
@@ -65,6 +65,7 @@ def store_category(link):
 def get_store_data(store):
     response = requests.get(store)
     soup = BeautifulSoup(response.content, 'html.parser')
+    not_found = False
 
     # If a game page has all of the attribtues then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
@@ -80,12 +81,20 @@ def get_store_data(store):
             print(date)
 
             # Gets the review category of the game
-            game_review = soup.find('span', attrs={'itemprop': 'description'}).next
-            review_list.append(game_review)
-            print(game_review, end='\n')
+            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and soup.find('span', attrs={'itemprop': 'description'}):
+                review_list.append("Not Enough Reviews")
+                print("Not Enough Reviews")
+                not_found = True
+            else:
+                game_review = soup.find('span', attrs={'itemprop': 'description'}).next
+                review_list.append(game_review)
+                print(game_review, end='\n')
 
             # Grabs the game review score
-            if soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
+            if not_found:
+                print("No Score")
+                score_list.append(0)
+            elif soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
                 div = soup.find_all("span", {'class': 'nonresponsive_hidden responsive_reviewdesc'})
                 if len(div) == 2:
                     str1 = ""
@@ -104,6 +113,7 @@ def get_store_data(store):
                     score_list.append(game_score2)
                     print(game_score2)
 
+            #Grabs the review amount
             lol = soup.find('meta', attrs={'itemprop': 'reviewCount'})
             review_amt_list.append(lol['content'])
             print("Review Amt: " + lol['content'])
@@ -113,12 +123,16 @@ def get_store_data(store):
                 # Get the price
                 all = soup.find('div', attrs={'class': 'discount_original_price'}).next
                 print("Original: " + all, end=" ")
+                original_price_list.append(all)
                 all = soup.find('div', attrs={'class': 'discount_final_price'}).next
                 print("Discounted: " + all)
+                discount_price_list.append(all)
             else:
                 all = soup.find('meta', attrs={'itemprop': 'price'})
                 print("Original No sale: " + all["content"])
-            # Note Free games show up as 0.00
+                original_price_list.append(all["content"])
+                discount_price_list.append(0)
+            # Note Free games show up as 0.00 as original
 
             # Gets Achievements
             if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
@@ -200,7 +214,7 @@ New_List = store_category("https://store.steampowered.com/search/?tags=19&filter
 for i in New_List[:-4]:
     get_store_data(i)
 
-#get_store_data("https://store.steampowered.com/app/1300710/Dying_Light__Hellraid/")
+#get_store_data("https://store.steampowered.com/app/1420300/No_More_Heroes_2_Desperate_Struggle/")
 
 # Sorts by Top Sellers
 # Top_List = store_category("https://store.steampowered.com/search/?filter=topsellers&os=win")
@@ -211,8 +225,8 @@ for i in New_List[:-4]:
 # Sorts by Special
 # Special_List = store_category("https://store.steampowered.com/search/?&specials=1")
 
-rows = zip(name_list,date_list,review_list,score_list,review_amt_list,achievement_list,rating_category,DLC,Early_Access)
-tab = ["Name","Date Released","Review Category", "Review Number", "Review Amount", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
+rows = zip(name_list,date_list,review_list,score_list,review_amt_list, original_price_list, discount_price_list, achievement_list,rating_category,DLC,Early_Access)
+tab = ["Name","Date Released","Review Category", "Review Score", "Review Amount", "Original Price", "Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
 with open("Test.csv", mode='w') as test_file:
     writer = csv.writer(test_file, delimiter=',',quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
     writer.writerow(tab)
