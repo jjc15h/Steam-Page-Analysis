@@ -1,20 +1,18 @@
-# Lets do this by tags and categories like action, strategy, etc... instead
-#TODO: Clean up the code to make it look semi-decent
-#TODO: Create an extra function for the workbook part.
-#TODO: Work on combining multiple workbooks into one at the end
-#TODO: Figure out how to directly link to tablaeu or PowerBI for extra points
+# TODO: Clean up the code to make it look semi-decent
+# TODO: Figure out how to directly link to tablaeu or PowerBI for extra points
 
 import requests
 import time
 import re
 import csv
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
 name_list = []
 date_list = []
-review_list=[]
-score_list =[]
+review_list = []
+score_list = []
 review_amt_list = []
 original_price_list = []
 discount_price_list = []
@@ -28,6 +26,19 @@ def store_category(link):
     browser = webdriver.Chrome()
     browser.get(link)
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+    # Put function
+    name_list.clear()
+    date_list.clear()
+    review_list.clear()
+    score_list.clear()
+    review_amt_list.clear()
+    original_price_list.clear()
+    discount_price_list.clear()
+    achievement_list.clear()
+    rating_category.clear()
+    DLC.clear()
+    Early_Access.clear()
 
     SCROLL_PAUSE_TIME = 0.5
 
@@ -44,9 +55,9 @@ def store_category(link):
         # Calculate new scroll height and compare with last scroll height
         new_height = browser.execute_script("return document.body.scrollHeight")
         a = a + 1
-        if a == 2:
+        if a == 1:
             break
-        #Originally 6
+        # Originally 6
 
     soup = BeautifulSoup(browser.page_source, 'html.parser')
 
@@ -67,7 +78,7 @@ def get_store_data(store):
     soup = BeautifulSoup(response.content, 'html.parser')
     not_found = False
 
-    # If a game page has all of the attribtues then we can collect its information
+    # If a game page has all of the attributes then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
         if soup.find('span', attrs={'itemprop': 'description'}):
             # Gets the name of the game
@@ -75,13 +86,15 @@ def get_store_data(store):
             name_list.append(game_name)
             print(game_name)
 
-            #Gets the date the game first released
-            date = soup.find('div', attrs={'class':'date'}).next
+            # Gets the date the game first released
+            date = soup.find('div', attrs={'class': 'date'}).next
             date_list.append(date)
             print(date)
 
             # Gets the review category of the game
-            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and soup.find('span', attrs={'itemprop': 'description'}):
+            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and soup.find('span',
+                                                                                                          attrs={
+                                                                                                              'itemprop': 'description'}):
                 review_list.append("Not Enough Reviews")
                 print("Not Enough Reviews")
                 not_found = True
@@ -113,7 +126,7 @@ def get_store_data(store):
                     score_list.append(game_score2)
                     print(game_score2)
 
-            #Grabs the review amount
+            # Grabs the review amount
             lol = soup.find('meta', attrs={'itemprop': 'reviewCount'})
             review_amt_list.append(lol['content'])
             print("Review Amt: " + lol['content'])
@@ -136,14 +149,13 @@ def get_store_data(store):
 
             # Gets Achievements
             if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
-                GELLO = soup.find('div', attrs={'id': 'achievement_block'}).find('div',
-                                                                                 attrs={'class': 'block_title'}).next
-                GELLO = GELLO.strip()
-                GELLO = re.findall('\d+', GELLO)
-                if len(GELLO) == 1:
-                    GELLO = list(map(int, GELLO))
-                    print(GELLO[0], end="")
-                    achievement_list.append(GELLO[0])
+                achievement_num = soup.find('div', attrs={'id': 'achievement_block'}).find('div',attrs={'class': 'block_title'}).next
+                achievement_num = achievement_num.strip()
+                achievement_num = re.findall('\d+', achievement_num)
+                if len(achievement_num) == 1:
+                    achievement_num = list(map(int, achievement_num))
+                    print(achievement_num[0], end="")
+                    achievement_list.append(achievement_num[0])
                 else:
                     achievement_list.append(0)
                     print("0", end="")
@@ -189,7 +201,6 @@ def get_store_data(store):
                 DLC.append('N')
                 print("DLC: N")
 
-
             print("Early Access: ", end='')
             if soup.find_all('div', attrs={'class': 'early_access_header'}):
                 print("Y", end='\n\n')
@@ -198,39 +209,98 @@ def get_store_data(store):
                 print("N", end='\n\n')
                 Early_Access.append('N')
 
-    # Game Feature Tags Ex, Controller Support (?)
-    # Operating Systems (?)
 
-    # https://store.steampowered.com/app/1264280/Slipways/
-    # https://store.steampowered.com/app/601840/Griftlands/
-    # https://store.steampowered.com/app/1328670/Mass_Effect_Legendary_Edition/
-    # "https://store.steampowered.com/app/211820/Starbound/"
-    # "https://store.steampowered.com/app/322330/Dont_Starve_Together/" Achievements
+def organize_page(sheet_name):
+    rows = zip(name_list, date_list, review_list, score_list, review_amt_list, original_price_list, discount_price_list,
+               achievement_list, rating_category, DLC, Early_Access)
+    tab = ["Name", "Date Released", "Review Category", "Review Score", "Review Amount", "Original Price",
+           "Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
+    with open(sheet_name, mode='w') as test_file:
+        writer = csv.writer(test_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+        writer.writerow(tab)
+        for row in rows:
+            writer.writerow(row)
 
 
 # Sorts by Top Selling Action
-New_List = store_category("https://store.steampowered.com/search/?tags=19&filter=topsellers")
+New_List = store_category("https://store.steampowered.com/search/?filter=topsellers&tags=19")
 
 for i in New_List[:-4]:
     get_store_data(i)
 
-#get_store_data("https://store.steampowered.com/app/1420300/No_More_Heroes_2_Desperate_Struggle/")
+organize_page("Sheet1.csv")
 
-# Sorts by Top Sellers
-# Top_List = store_category("https://store.steampowered.com/search/?filter=topsellers&os=win")
+# Top Selling Role Playing
+New_List = store_category("https://store.steampowered.com/search/?tags=122&filter=topsellers")
 
-# Sorts by Upcoming
-# Upcoming_List = store_category("https://store.steampowered.com/search/?filter=comingsoon&os=win")
+for i in New_List[:-4]:
+    get_store_data(i)
 
-# Sorts by Special
-# Special_List = store_category("https://store.steampowered.com/search/?&specials=1")
+organize_page("Sheet2.csv")
 
-rows = zip(name_list,date_list,review_list,score_list,review_amt_list, original_price_list, discount_price_list, achievement_list,rating_category,DLC,Early_Access)
-tab = ["Name","Date Released","Review Category", "Review Score", "Review Amount", "Original Price", "Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
-with open("Test.csv", mode='w') as test_file:
-    writer = csv.writer(test_file, delimiter=',',quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-    writer.writerow(tab)
-    for row in rows:
-        writer.writerow(row)
+# Top selling Strategy
+New_List = store_category("https://store.steampowered.com/search/?tags=9&filter=topsellers")
 
-# At the end here, be sure to combine multiple workbooks into a single one with multiple file sheets.
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet3.csv")
+
+# Top selling Simulation
+New_List = store_category("https://store.steampowered.com/search/?tags=599&filter=topsellers")
+
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet4.csv")
+
+# Top selling Indie Games
+New_List = store_category("https://store.steampowered.com/search/?tags=492&filter=topsellers")
+
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet5.csv")
+
+# Top selling Sports
+New_List = store_category("https://store.steampowered.com/search/?tags=701&filter=topsellers")
+
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet6.csv")
+
+# Top selling Puzzle
+New_List = store_category("https://store.steampowered.com/search/?tags=1664&filter=topsellers")
+
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet7.csv")
+
+# Top selling Horror
+New_List = store_category("https://store.steampowered.com/search/?tags=1667&filter=topsellers")
+
+for i in New_List[:-4]:
+    get_store_data(i)
+
+organize_page("Sheet8.csv")
+
+writer = pd.ExcelWriter('sum.xlsx', engine='xlsxwriter')
+data = pd.read_csv("Sheet1.csv")
+data2 = pd.read_csv("Sheet2.csv")
+data3 = pd.read_csv("Sheet3.csv")
+data4 = pd.read_csv("Sheet4.csv")
+data5 = pd.read_csv("Sheet5.csv")
+data6 = pd.read_csv("Sheet6.csv")
+data7 = pd.read_csv("Sheet7.csv")
+data8 = pd.read_csv("Sheet8.csv")
+data.to_excel(writer, sheet_name='Action', index=False)
+data2.to_excel(writer, sheet_name='Role Playing', index=False)
+data3.to_excel(writer, sheet_name='Strategy', index=False)
+data4.to_excel(writer, sheet_name='Simulation', index=False)
+data5.to_excel(writer, sheet_name='Indie', index=False)
+data6.to_excel(writer, sheet_name='Sports', index=False)
+data7.to_excel(writer, sheet_name='Puzzle', index=False)
+data8.to_excel(writer, sheet_name='Horror', index=False)
+writer.save()
