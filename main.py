@@ -1,5 +1,4 @@
-# TODO: Clean up the code to make it look semi-decent
-# TODO: Figure out how to directly link to tablaeu or PowerBI for extra points
+# TODO: Work on creating visuals in both Python and PowerBI
 
 import requests
 import time
@@ -9,6 +8,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
+# Global list of different categories. Easier than passing them through constantly
 name_list = []
 date_list = []
 review_list = []
@@ -40,34 +40,38 @@ def store_category(link):
     DLC.clear()
     Early_Access.clear()
 
-    SCROLL_PAUSE_TIME = 0.5
+    scroll_pause_time = 0.5
 
     # Get scroll height
     last_height = browser.execute_script("return document.body.scrollHeight")
-    a = 0
+
+    # Controls for the amount of pages python scrolls through in a web page
+    page_amt = 0
     while True:
         # Scroll down to bottom
         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Wait to load page
-        time.sleep(SCROLL_PAUSE_TIME)
+        time.sleep(scroll_pause_time)
 
         # Calculate new scroll height and compare with last scroll height
         new_height = browser.execute_script("return document.body.scrollHeight")
-        a = a + 1
-        if a == 1:
+        page_amt = page_amt + 1
+        if page_amt == 1:
             break
         # Originally 6
 
     soup = BeautifulSoup(browser.page_source, 'html.parser')
 
     new_category = []
-    i = 0
+
+    # Gathers all the game URL links from the web page. Stops when the end of page is encountered or limit is reached
+    web_page_count = 0
     for div in soup.find_all("div", {"class": "search_results"}):
         for link in div.select("a"):
             new_category.append(link['href'])
-            i = i + 1
-            if i == 500:
+            web_page_count = web_page_count + 1
+            if web_page_count == 500:
                 break
 
     return new_category
@@ -92,9 +96,8 @@ def get_store_data(store):
             print(date)
 
             # Gets the review category of the game
-            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and soup.find('span',
-                                                                                                          attrs={
-                                                                                                              'itemprop': 'description'}):
+            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and \
+                    soup.find('span', attrs={'itemprop': 'description'}):
                 review_list.append("Not Enough Reviews")
                 print("Not Enough Reviews")
                 not_found = True
@@ -127,29 +130,30 @@ def get_store_data(store):
                     print(game_score2)
 
             # Grabs the review amount
-            lol = soup.find('meta', attrs={'itemprop': 'reviewCount'})
-            review_amt_list.append(lol['content'])
-            print("Review Amt: " + lol['content'])
+            rev_amt = soup.find('meta', attrs={'itemprop': 'reviewCount'})
+            review_amt_list.append(rev_amt['content'])
+            print("Review Amt: " + rev_amt['content'])
 
             # Grabs the price of the game including sales if applicable
             if soup.find('div', attrs={'class': 'discount_original_price'}):
                 # Get the price
-                all = soup.find('div', attrs={'class': 'discount_original_price'}).next
-                print("Original: " + all, end=" ")
-                original_price_list.append(all)
-                all = soup.find('div', attrs={'class': 'discount_final_price'}).next
-                print("Discounted: " + all)
-                discount_price_list.append(all)
+                game_price = soup.find('div', attrs={'class': 'discount_original_price'}).next
+                print("Original: " + game_price, end=" ")
+                original_price_list.append(game_price)
+                game_price = soup.find('div', attrs={'class': 'discount_final_price'}).next
+                print("Discounted: " + game_price)
+                discount_price_list.append(game_price)
             else:
-                all = soup.find('meta', attrs={'itemprop': 'price'})
-                print("Original No sale: " + all["content"])
-                original_price_list.append(all["content"])
+                game_price = soup.find('meta', attrs={'itemprop': 'price'})
+                print("Original No sale: " + game_price["content"])
+                original_price_list.append(game_price["content"])
                 discount_price_list.append(0)
             # Note Free games show up as 0.00 as original
 
             # Gets Achievements
             if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
-                achievement_num = soup.find('div', attrs={'id': 'achievement_block'}).find('div',attrs={'class': 'block_title'}).next
+                achievement_num = soup.find('div', attrs={'id': 'achievement_block'}).find('div', attrs={'class': 'block_title'}).next
+
                 achievement_num = achievement_num.strip()
                 achievement_num = re.findall('\d+', achievement_num)
                 if len(achievement_num) == 1:
@@ -164,8 +168,7 @@ def get_store_data(store):
                 achievement_list.append(0)
                 print("0 Achievements")
 
-            # Work on Rating System ( Figure out how to get the ratings from a link
-
+            # Grabs the rating system from the game page
             print("Rating: ", end='')
             if soup.find_all('div', attrs={'class': 'game_rating_icon'}):
                 for a in soup.find_all('div', attrs={'class': 'game_rating_icon'}):
@@ -194,6 +197,7 @@ def get_store_data(store):
                 print("No Rating")
                 rating_category.append("No Rating")
 
+            # Finds out whether the item is a DLC or not
             if soup.findAll('div', attrs={'class': 'game_area_bubble game_area_dlc_bubble'}):
                 print("DLC: Y")
                 DLC.append('Y')
@@ -201,6 +205,7 @@ def get_store_data(store):
                 DLC.append('N')
                 print("DLC: N")
 
+            # Finds out whether the item is in early access (Not finished yet) or not
             print("Early Access: ", end='')
             if soup.find_all('div', attrs={'class': 'early_access_header'}):
                 print("Y", end='\n\n')
@@ -210,17 +215,22 @@ def get_store_data(store):
                 Early_Access.append('N')
 
 
+# When a page category is swept through, this function creates a csv sheet for that category
 def organize_page(sheet_name):
     rows = zip(name_list, date_list, review_list, score_list, review_amt_list, original_price_list, discount_price_list,
                achievement_list, rating_category, DLC, Early_Access)
     tab = ["Name", "Date Released", "Review Category", "Review Score", "Review Amount", "Original Price",
            "Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
     with open(sheet_name, mode='w') as test_file:
-        writer = csv.writer(test_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-        writer.writerow(tab)
+        writers = csv.writer(test_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+        writers.writerow(tab)
         for row in rows:
-            writer.writerow(row)
+            writers.writerow(row)
 
+
+# Goes to the steam category page and grabs the links into "New_List"
+# Goes through each link and places info into separate lists before organizing them into their own csv files
+# To add/change what the program gets and searches for, give it a different filtered url than the ones provided.
 
 # Sorts by Top Selling Action
 New_List = store_category("https://store.steampowered.com/search/?filter=topsellers&tags=19")
@@ -286,6 +296,7 @@ for i in New_List[:-4]:
 
 organize_page("Sheet8.csv")
 
+# Goes through all 8 csv files and combines them into one "Sum" file
 writer = pd.ExcelWriter('sum.xlsx', engine='xlsxwriter')
 data = pd.read_csv("Sheet1.csv")
 data2 = pd.read_csv("Sheet2.csv")
