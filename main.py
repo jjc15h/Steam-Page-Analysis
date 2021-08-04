@@ -85,134 +85,135 @@ def get_store_data(store):
     # If a game page has all of the attributes then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
         if soup.find('span', attrs={'itemprop': 'description'}):
-            # Gets the name of the game
-            game_name = soup.find('span', attrs={'itemprop': 'name'}).next
-            name_list.append(game_name)
-            print(game_name)
+            if soup.find('div', attrs={'class': 'date'}):
+                # Gets the name of the game
+                game_name = soup.find('span', attrs={'itemprop': 'name'}).next
+                name_list.append(game_name)
+                print(game_name)
 
-            # Gets the date the game first released
-            date = soup.find('div', attrs={'class': 'date'}).next
-            date_list.append(date)
-            print(date)
+                # Gets the date the game first released
+                date = soup.find('div', attrs={'class': 'date'}).next
+                date_list.append(date)
+                print(date)
 
-            # Gets the review category of the game
-            if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and \
-                    soup.find('span', attrs={'itemprop': 'description'}):
-                review_list.append("Not Enough Reviews")
-                print("Not Enough Reviews")
-                not_found = True
-            else:
-                game_review = soup.find('span', attrs={'itemprop': 'description'}).next
-                review_list.append(game_review)
-                print(game_review, end='\n')
-
-            # Grabs the game review score
-            if not_found:
-                print("No Score")
-                score_list.append(0)
-            elif soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
-                div = soup.find_all("span", {'class': 'nonresponsive_hidden responsive_reviewdesc'})
-                if len(div) == 2:
-                    str1 = ""
-                    for i in div[1]:
-                        str1 += str(i)
-                    str1 = str1.strip()
-                    game_score2 = str1[2] + str1[3]
-                    score_list.append(game_score2)
-                    print(game_score2)
+                # Gets the review category of the game
+                if soup.find('span', attrs={'class': 'game_review_summary not_enough_reviews'}) and \
+                        soup.find('span', attrs={'itemprop': 'description'}):
+                    review_list.append("Not Enough Reviews")
+                    print("Not Enough Reviews")
+                    not_found = True
                 else:
-                    str1 = ""
-                    for i in div[0]:
-                        str1 += str(i)
-                    str1 = str1.strip()
-                    game_score2 = str1[2] + str1[3]
-                    score_list.append(game_score2)
-                    print(game_score2)
+                    game_review = soup.find('span', attrs={'itemprop': 'description'}).next
+                    review_list.append(game_review)
+                    print(game_review, end='\n')
 
-            # Grabs the review amount
-            rev_amt = soup.find('meta', attrs={'itemprop': 'reviewCount'})
-            review_amt_list.append(rev_amt['content'])
-            print("Review Amt: " + rev_amt['content'])
+                # Grabs the game review score
+                if not_found:
+                    print("No Score")
+                    score_list.append(0)
+                elif soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
+                    div = soup.find_all("span", {'class': 'nonresponsive_hidden responsive_reviewdesc'})
+                    if len(div) == 2:
+                        str1 = ""
+                        for i in div[1]:
+                            str1 += str(i)
+                        str1 = str1.strip()
+                        game_score2 = str1[2] + str1[3]
+                        score_list.append(game_score2)
+                        print(game_score2)
+                    else:
+                        str1 = ""
+                        for i in div[0]:
+                            str1 += str(i)
+                        str1 = str1.strip()
+                        game_score2 = str1[2] + str1[3]
+                        score_list.append(game_score2)
+                        print(game_score2)
 
-            # Grabs the price of the game including sales if applicable
-            if soup.find('div', attrs={'class': 'discount_original_price'}):
-                # Get the price
-                game_price = soup.find('div', attrs={'class': 'discount_original_price'}).next
-                print("Original: " + game_price, end=" ")
-                original_price_list.append(game_price)
-                game_price = soup.find('div', attrs={'class': 'discount_final_price'}).next
-                print("Discounted: " + game_price)
-                discount_price_list.append(game_price)
-            else:
-                game_price = soup.find('meta', attrs={'itemprop': 'price'})
-                print("Original No sale: " + game_price["content"])
-                original_price_list.append(game_price["content"])
-                discount_price_list.append(0)
-            # Note Free games show up as 0.00 as original
+                # Grabs the review amount
+                rev_amt = soup.find('meta', attrs={'itemprop': 'reviewCount'})
+                review_amt_list.append(rev_amt['content'])
+                print("Review Amt: " + rev_amt['content'])
 
-            # Gets Achievements
-            if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
-                achievement_num = soup.find('div', attrs={'id': 'achievement_block'}).find('div', attrs={'class': 'block_title'}).next
+                # Grabs the price of the game including sales if applicable
+                if soup.find('div', attrs={'class': 'discount_original_price'}):
+                    # Get the price
+                    game_price = soup.find('div', attrs={'class': 'discount_original_price'}).next
+                    print("Original: " + game_price, end=" ")
+                    original_price_list.append(game_price)
+                    game_price = soup.find('div', attrs={'class': 'discount_final_price'}).next
+                    print("Discounted: " + game_price)
+                    discount_price_list.append(game_price)
+                else:
+                    game_price = soup.find('meta', attrs={'itemprop': 'price'})
+                    print("Original No sale: " + game_price["content"])
+                    original_price_list.append(game_price["content"])
+                    discount_price_list.append(0)
+                # Note Free games show up as 0.00 as original
 
-                achievement_num = achievement_num.strip()
-                achievement_num = re.findall('\d+', achievement_num)
-                if len(achievement_num) == 1:
-                    achievement_num = list(map(int, achievement_num))
-                    print(achievement_num[0], end="")
-                    achievement_list.append(achievement_num[0])
+                # Gets Achievements
+                if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
+                    achievement_num = soup.find('div', attrs={'id': 'achievement_block'}).find('div', attrs={'class': 'block_title'}).next
+
+                    achievement_num = achievement_num.strip()
+                    achievement_num = re.findall('\d+', achievement_num)
+                    if len(achievement_num) == 1:
+                        achievement_num = list(map(int, achievement_num))
+                        print(achievement_num[0], end="")
+                        achievement_list.append(achievement_num[0])
+                    else:
+                        achievement_list.append(0)
+                        print("0", end="")
+                    print(" Achievements")
                 else:
                     achievement_list.append(0)
-                    print("0", end="")
-                print(" Achievements")
-            else:
-                achievement_list.append(0)
-                print("0 Achievements")
+                    print("0 Achievements")
 
-            # Grabs the rating system from the game page
-            print("Rating: ", end='')
-            if soup.find_all('div', attrs={'class': 'game_rating_icon'}):
-                for a in soup.find_all('div', attrs={'class': 'game_rating_icon'}):
-                    if a.img:
-                        temp = ''.join(a.img['src'])
-                        temp = temp.rsplit('/', 1)
-                        if temp[1] == "m.png":
-                            rating_category.append("Mature")
-                            print("Mature")
-                        elif temp[1] == "t.png":
-                            rating_category.append("Teen")
-                            print("Teen")
-                        elif temp[1] == "e.png":
-                            rating_category.append("Everyone")
-                            print("Everyone")
-                        elif temp[1] == "e10.png":
-                            rating_category.append("Everyone 10+")
-                            print("Everyone 10+")
-                        elif temp[1] == "ao.png":
-                            rating_category.append("Adult")
-                            print("Adult")
-                        elif temp[1] == "rp.png":
-                            rating_category.append("Pending")
-                            print("Pending")
-            else:
-                print("No Rating")
-                rating_category.append("No Rating")
+                # Grabs the rating system from the game page
+                print("Rating: ", end='')
+                if soup.find_all('div', attrs={'class': 'game_rating_icon'}):
+                    for a in soup.find_all('div', attrs={'class': 'game_rating_icon'}):
+                        if a.img:
+                            temp = ''.join(a.img['src'])
+                            temp = temp.rsplit('/', 1)
+                            if temp[1] == "m.png":
+                                rating_category.append("Mature")
+                                print("Mature")
+                            elif temp[1] == "t.png":
+                                rating_category.append("Teen")
+                                print("Teen")
+                            elif temp[1] == "e.png":
+                                rating_category.append("Everyone")
+                                print("Everyone")
+                            elif temp[1] == "e10.png":
+                                rating_category.append("Everyone 10+")
+                                print("Everyone 10+")
+                            elif temp[1] == "ao.png":
+                                rating_category.append("Adult")
+                                print("Adult")
+                            elif temp[1] == "rp.png":
+                                rating_category.append("Pending")
+                                print("Pending")
+                else:
+                    print("No Rating")
+                    rating_category.append("No Rating")
 
-            # Finds out whether the item is a DLC or not
-            if soup.findAll('div', attrs={'class': 'game_area_bubble game_area_dlc_bubble'}):
-                print("DLC: Y")
-                DLC.append('Y')
-            else:
-                DLC.append('N')
-                print("DLC: N")
+                # Finds out whether the item is a DLC or not
+                if soup.findAll('div', attrs={'class': 'game_area_bubble game_area_dlc_bubble'}):
+                    print("DLC: Y")
+                    DLC.append('Y')
+                else:
+                    DLC.append('N')
+                    print("DLC: N")
 
-            # Finds out whether the item is in early access (Not finished yet) or not
-            print("Early Access: ", end='')
-            if soup.find_all('div', attrs={'class': 'early_access_header'}):
-                print("Y", end='\n\n')
-                Early_Access.append('Y')
-            else:
-                print("N", end='\n\n')
-                Early_Access.append('N')
+                # Finds out whether the item is in early access (Not finished yet) or not
+                print("Early Access: ", end='')
+                if soup.find_all('div', attrs={'class': 'early_access_header'}):
+                    print("Y", end='\n\n')
+                    Early_Access.append('Y')
+                else:
+                    print("N", end='\n\n')
+                    Early_Access.append('N')
 
 
 # When a page category is swept through, this function creates a csv sheet for that category
@@ -298,14 +299,14 @@ organize_page("Sheet8.csv")
 
 # Goes through all 8 csv files and combines them into one "Sum" file
 writer = pd.ExcelWriter('sum.xlsx', engine='xlsxwriter')
-data = pd.read_csv("Sheet1.csv")
-data2 = pd.read_csv("Sheet2.csv")
-data3 = pd.read_csv("Sheet3.csv")
-data4 = pd.read_csv("Sheet4.csv")
-data5 = pd.read_csv("Sheet5.csv")
-data6 = pd.read_csv("Sheet6.csv")
-data7 = pd.read_csv("Sheet7.csv")
-data8 = pd.read_csv("Sheet8.csv")
+data = pd.read_csv("Sheet1.csv", encoding='windows-1252')
+data2 = pd.read_csv("Sheet2.csv", encoding='windows-1252')
+data3 = pd.read_csv("Sheet3.csv", encoding='windows-1252')
+data4 = pd.read_csv("Sheet4.csv", encoding='windows-1252')
+data5 = pd.read_csv("Sheet5.csv", encoding='windows-1252')
+data6 = pd.read_csv("Sheet6.csv", encoding='windows-1252')
+data7 = pd.read_csv("Sheet7.csv", encoding='windows-1252')
+data8 = pd.read_csv("Sheet8.csv", encoding='windows-1252')
 data.to_excel(writer, sheet_name='Action', index=False)
 data2.to_excel(writer, sheet_name='Role Playing', index=False)
 data3.to_excel(writer, sheet_name='Strategy', index=False)
