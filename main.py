@@ -1,3 +1,6 @@
+# TODO: Work on simplifying the code into web_data.py
+# TODO: Work on getting postgres to work on with this too
+# TODO: Work on DBeaver when we get postgres up
 # TODO: Work on creating visuals in both Python and PowerBI
 
 import requests
@@ -7,6 +10,10 @@ import csv
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+
+import web_data as wd
+
 
 # Global list of different categories. Easier than passing them through constantly
 name_list = []
@@ -23,7 +30,7 @@ Early_Access = []
 
 
 def store_category(link):
-    browser = webdriver.Chrome()
+    browser = webdriver.Chrome(ChromeDriverManager().install())
     browser.get(link)
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
