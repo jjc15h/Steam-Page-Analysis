@@ -1,0 +1,11 @@
+body {
+    background-color: lightblue;
+}
+
+p {
+  background-color: rgb(250,0,0);
+}
+
+h1 a, h2 a {
+    color: #C25100;
+}
