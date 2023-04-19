@@ -5,16 +5,28 @@
     <meta charset="UTF-8">
     <title>Steam Store Analytics</title>
     <link rel="stylesheet" href="{% static 'style.css' %}">
-    <h1>IT WORKS NOW</h1>
-    <p>Paragraph</p>
+
 </head>
 <body>
     <header>
-
+        <nav>
+          <a href="#">Home</a>
+          <a href="#">Charts</a>
+          <a href="#">About</a>
+          <a href="#">Contact</a>
+          <div id="indicator"></div>
+        </nav>
     </header>
-
     <main>
+        <div class="title_container">
+            <h1 class="home_title">Steam Store Analysis</h1>
+            <h2 class="home_sub_title">By Jeremiah Cummings</h2>
+        </div>
 
+        <form action="" method="POST">
+            {{ form.as_p }}
+            <input type="Submit" name="submit" value="Re-Scrape Store"/>
+        </form>
     </main>
 
     <footer>

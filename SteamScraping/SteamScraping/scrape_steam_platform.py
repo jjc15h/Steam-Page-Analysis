@@ -10,10 +10,13 @@ import time
 import re
 import csv
 import pandas as pd
-from scrape_helper_data import store_meta
+# TODO: Depending on where this is being ran add a contency
+from . scrape_helper_data import store_meta
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 
+driver = webdriver.Chrome(ChromeDriverManager().install())
 
 VERBOSE = True
 
@@ -214,7 +217,7 @@ def driver():
     # To add/change what the program gets and searches for, give it a different filtered url than the ones provided.
 
     # Goes through all 8 csv files and combines them into one "Sum" file
-    writer = pd.ExcelWriter('data_folder/sum.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter('SteamScraping/data_folder/sum.xlsx', engine='xlsxwriter')
 
     # Store_link, Category, Sheetname
     for info in store_meta:
@@ -234,5 +237,5 @@ def driver():
 
     writer.save()
 
-if __name__ == '__main__':
+if  __name__ == '__main__':
     driver()
