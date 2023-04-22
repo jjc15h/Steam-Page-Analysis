@@ -14,6 +14,9 @@ import pandas as pd
 from . scrape_helper_data import store_meta
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -24,6 +27,7 @@ VERBOSE = True
 def store_category(link):
     browser = webdriver.Chrome()
     browser.get(link)
+
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
     scroll_pause_time = 0.5
@@ -37,6 +41,10 @@ def store_category(link):
         # Scroll down to bottom
         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
+        # TODO: Run it for everything so we can play in PowerBI later
+        # TODO: Figure out how to make this wait correctly
+        #WebDriverWait(browser, 30).until(EC.visibility_of_element_located((By.CSS_SELECTOR,
+        #                                                                   '#capacityGrid > table > tbody')))
         # Wait to load page
         time.sleep(scroll_pause_time)
 
@@ -68,6 +76,7 @@ def get_store_data(store, sheet_meta_info):
     response = requests.get(store)
     soup = BeautifulSoup(response.content, 'html.parser')
     not_found = False
+
 
     # If a game page have all the attributes then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
@@ -115,6 +124,7 @@ def get_store_data(store, sheet_meta_info):
                 sheet_meta_info['review_amt_list'].append(rev_amt['content'])
 
                 # Grabs the price of the game including sales if applicable. Note Free games show up as 0.00 as original
+                # TODO: Make this work with this game link????: https://store.steampowered.com/app/261570/Ori_and_the_Blind_Forest/
                 if soup.find('div', attrs={'class': 'discount_original_price'}):
                     # Get the price
                     game_price = soup.find('div', attrs={'class': 'discount_original_price'}).next
@@ -128,6 +138,7 @@ def get_store_data(store, sheet_meta_info):
                 else:
                     # Original No Sale
                     game_price = soup.find('meta', attrs={'itemprop': 'price'})
+                    print("WTF:", game_price)
                     sheet_meta_info['original_price_list'].append(game_price["content"])
                     sheet_meta_info['discount_price_list'].append(0)
 
@@ -211,7 +222,7 @@ def driver():
     sheet_meta_info["rating_category"] = []
     sheet_meta_info["DLC"] = []
     sheet_meta_info["Early_Access"] = []
-
+    failed_links = []
     # Goes to the steam category page and grabs the links into "New_List"
     # Goes through each link and places info into separate lists before organizing them into their own csv files
     # To add/change what the program gets and searches for, give it a different filtered url than the ones provided.
@@ -228,8 +239,14 @@ def driver():
 
         game_page_list = store_category(info['store_link'])
 
+        # TODO: When we find an error remove the latest entry from the list and record it
         for game_link in game_page_list[:-4]:
-            get_store_data(game_link, sheet_meta_info)
+            try:
+                get_store_data(game_link, sheet_meta_info)
+            except TypeError:
+                failed_links.append(game_link)
+
+        print("ALL FAILED LINKS:", failed_links)
         organize_page(info['sheet'], sheet_meta_info)
 
         data = pd.read_csv(info['sheet'], encoding='windows-1252')
