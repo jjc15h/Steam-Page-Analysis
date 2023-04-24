@@ -78,7 +78,7 @@ def get_store_data(store, sheet_meta_info):
     not_found = False
 
 
-    # If a game page have all the attributes then we can collect its information
+    # If a game page has all the attributes then we can collect its information
     if soup.find('span', attrs={'itemprop': 'name'}):
         if soup.find('span', attrs={'itemprop': 'description'}):
             if soup.find('div', attrs={'class': 'date'}):
@@ -99,9 +99,20 @@ def get_store_data(store, sheet_meta_info):
                     game_review = soup.find('span', attrs={'itemprop': 'description'}).next
                     sheet_meta_info['review_list'].append(game_review)
 
+                if soup.find('div', attrs={"id": "developers_list"}):
+                    sheet_meta_info['developer'].append(soup.find('div', attrs={"id": "developers_list"}).find_next('a', href=True).text)
+                else:
+                    sheet_meta_info['developer'].append('Unknown')
+
+                if soup.find('div', text = "Publisher:", attrs={'class': 'subtitle column'}):
+                    sheet_meta_info['publisher'].append(soup.find('div', text = "Publisher:", attrs={'class': 'subtitle column'}).next.find_next('a', href=True).text)
+                else:
+                    sheet_meta_info['publisher'].append("Unknown")
+
+
                 # Grabs the game review score
                 if not_found:
-                    sheet_meta_info['score_list'].append(0)
+                    sheet_meta_info['score_list'].append(None)
                 elif soup.find('span', attrs={'class': 'nonresponsive_hidden responsive_reviewdesc'}):
                     div = soup.find_all("span", {'class': 'nonresponsive_hidden responsive_reviewdesc'})
                     if len(div) == 2:
@@ -119,28 +130,41 @@ def get_store_data(store, sheet_meta_info):
                         game_score2 = str1[2] + str1[3]
                         sheet_meta_info['score_list'].append(game_score2)
 
+                # Grabs the metacritic score if there is one
+                if soup.find('div', attrs={'id': 'game_area_metascore'}):
+                    regex = re.compile('^score')
+                    sheet_meta_info['metacritic_score_list'].append(soup.find('div', attrs={'id': 'game_area_metascore'}).find('div', attrs={'class': regex}).text.strip())
+                else:
+                    sheet_meta_info['metacritic_score_list'].append(None)
+
                 # Grabs the review amount
                 rev_amt = soup.find('meta', attrs={'itemprop': 'reviewCount'})
                 sheet_meta_info['review_amt_list'].append(rev_amt['content'])
 
                 # Grabs the price of the game including sales if applicable. Note Free games show up as 0.00 as original
                 # TODO: Make this work with this game link????: https://store.steampowered.com/app/261570/Ori_and_the_Blind_Forest/
-                if soup.find('div', attrs={'class': 'discount_original_price'}):
+                if soup.find('div', attrs={'id': 'freeGameBtn'}):
+                    sheet_meta_info['original_price_list'].append(0)
+                    sheet_meta_info['discount_price_list'].append(None)
+                elif soup.find('div', attrs={'class': 'game_area_purchase_game_wrapper'}).find('div', attrs={'class': 'discount_original_price'}):
+                    sheet_meta_info['original_price_list'].append(soup.find('div', attrs={'class': 'game_area_purchase_game_wrapper'}).find('div', attrs={'class': 'discount_original_price'}).text.strip())
+                    sheet_meta_info['discount_price_list'].append(soup.find('div', attrs={'class': 'game_area_purchase_game_wrapper'}).find('div', attrs={'class': 'discount_final_price'}).text.strip())
+                elif soup.find('div', attrs={'class': 'game_area_purchase_game_wrapper'}).find('div', attrs={'class': 'game_purchase_price price'}):
+                    sheet_meta_info['original_price_list'].append(soup.find('div', attrs={'class': 'game_area_purchase_game_wrapper'}).find('div', attrs={'class': 'game_purchase_price price'}).text.strip())
+                    sheet_meta_info['discount_price_list'].append(None)
+                elif soup.find('div', attrs={'class': 'discount_original_price'}):
                     # Get the price
                     game_price = soup.find('div', attrs={'class': 'discount_original_price'}).next
                     sheet_meta_info['original_price_list'].append(game_price)
 
                     game_price = soup.find('div', attrs={'class': 'discount_final_price'}).next
                     sheet_meta_info['discount_price_list'].append(game_price)
-                elif soup.find('div', attrs={'class': 'discount_final_price'}):
-                    game_price = soup.find('div', attrs={'class': 'discount_final_price'}).next
-                    sheet_meta_info['discount_price_list'].append(game_price)
                 else:
+                    print("OPTION 3")
                     # Original No Sale
                     game_price = soup.find('meta', attrs={'itemprop': 'price'})
-                    print("WTF:", game_price)
                     sheet_meta_info['original_price_list'].append(game_price["content"])
-                    sheet_meta_info['discount_price_list'].append(0)
+                    sheet_meta_info['discount_price_list'].append(None)
 
                 # Gets Achievements
                 if soup.find('div', attrs={'id': 'achievement_block'}) and soup.find('div', attrs={'class': 'block_title'}):
@@ -197,12 +221,13 @@ def get_store_data(store, sheet_meta_info):
 
 # When a page category is swept through, this function creates a csv sheet for that category
 def organize_page(sheet_name, meta_info):
-    rows = zip(meta_info['name_list'], meta_info['date_list'], meta_info['review_list'], meta_info['score_list'],
+    rows = zip(meta_info['name_list'], meta_info['developer'], meta_info['publisher'], meta_info['date_list'],
+               meta_info['review_list'], meta_info['score_list'], meta_info['metacritic_score_list'],
                meta_info['review_amt_list'], meta_info['original_price_list'], meta_info['discount_price_list'],
                meta_info['achievement_list'], meta_info['rating_category'], meta_info['DLC'], meta_info['Early_Access'])
-    tab = ["Name", "Date Released", "Review Category", "Review Score", "Review Amount", "Original Price",
-           "Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
-    with open(sheet_name, mode='w') as test_file:
+    tab = ["Name", "Developer", "Publisher", "Date Released", "Review Category", "Review Score", "MetaCritic Review Score",
+           "Review Amount", "Original Price","Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
+    with open(sheet_name, mode='w', encoding='utf-8') as test_file:
         writers = csv.writer(test_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         writers.writerow(tab)
         for row in rows:
@@ -211,10 +236,13 @@ def organize_page(sheet_name, meta_info):
 
 def driver():
     sheet_meta_info = dict()
+    sheet_meta_info["developer"] = []
+    sheet_meta_info["publisher"] = []
     sheet_meta_info["name_list"] = []
     sheet_meta_info["date_list"] = []
     sheet_meta_info["review_list"] = []
     sheet_meta_info["score_list"] = []
+    sheet_meta_info["metacritic_score_list"] = []
     sheet_meta_info["review_amt_list"] = []
     sheet_meta_info["original_price_list"] = []
     sheet_meta_info["discount_price_list"] = []
