@@ -163,7 +163,7 @@ def get_store_data(store, sheet_meta_info):
                     print("OPTION 3")
                     # Original No Sale
                     game_price = soup.find('meta', attrs={'itemprop': 'price'})
-                    sheet_meta_info['original_price_list'].append(game_price["content"])
+                    sheet_meta_info['original_price_list'].append(game_price["content"].strip())
                     sheet_meta_info['discount_price_list'].append(None)
 
                 # Gets Achievements
@@ -224,9 +224,9 @@ def organize_page(sheet_name, meta_info):
     rows = zip(meta_info['name_list'], meta_info['developer'], meta_info['publisher'], meta_info['date_list'],
                meta_info['review_list'], meta_info['score_list'], meta_info['metacritic_score_list'],
                meta_info['review_amt_list'], meta_info['original_price_list'], meta_info['discount_price_list'],
-               meta_info['achievement_list'], meta_info['rating_category'], meta_info['DLC'], meta_info['Early_Access'])
+               meta_info['achievement_list'], meta_info['rating_category'], meta_info['DLC'], meta_info['Early_Access'], meta_info['category'])
     tab = ["Name", "Developer", "Publisher", "Date Released", "Review Category", "Review Score", "MetaCritic Review Score",
-           "Review Amount", "Original Price","Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?"]
+           "Review Amount", "Original Price","Discounted Price", "Achievements listed", "Game Rating", "DLC?", "Early Access?", "Category"]
     with open(sheet_name, mode='w', encoding='utf-8') as test_file:
         writers = csv.writer(test_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         writers.writerow(tab)
@@ -250,6 +250,7 @@ def driver():
     sheet_meta_info["rating_category"] = []
     sheet_meta_info["DLC"] = []
     sheet_meta_info["Early_Access"] = []
+    sheet_meta_info["category"] = []
     failed_links = []
     # Goes to the steam category page and grabs the links into "New_List"
     # Goes through each link and places info into separate lists before organizing them into their own csv files
@@ -267,17 +268,22 @@ def driver():
 
         game_page_list = store_category(info['store_link'])
 
+        # TODO: Make it combine into one sheet
         # TODO: When we find an error remove the latest entry from the list and record it
         for game_link in game_page_list[:-4]:
+            print("HERE:", game_link)
+            sheet_meta_info['category'].append(info['category'])
             try:
                 get_store_data(game_link, sheet_meta_info)
             except TypeError:
+                failed_links.append(game_link)
+            except AttributeError:
                 failed_links.append(game_link)
 
         print("ALL FAILED LINKS:", failed_links)
         organize_page(info['sheet'], sheet_meta_info)
 
-        data = pd.read_csv(info['sheet'], encoding='windows-1252')
+        data = pd.read_csv(info['sheet'], encoding='utf-8')
         data.to_excel(writer, sheet_name=info['category'], index=False)
 
     writer.save()
